@@ -337,6 +337,10 @@ function startGame() {
   buildGrid();
   showScreen('game-screen');
   nextRound();
+  // BGMを自動スタート（ユーザー操作後なので自動再生OK）
+  startBGM();
+  const btn = document.getElementById('bgm-btn');
+  if (btn) btn.textContent = '🎵';
 }
 
 function shuffle(a) {
