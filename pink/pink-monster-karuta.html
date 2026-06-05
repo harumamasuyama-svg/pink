@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>ピンクモンスターかるた</title>
+
+  <!-- ブラウザタブのアイコン -->
+  <link rel="icon" type="image/svg+xml" href="./icon.svg">
+
+  <!-- iPhoneのホーム画面アイコン -->
+  <link rel="apple-touch-icon" href="./icon.svg">
+
+  <!-- PWA設定（ホーム画面に追加したときにアプリっぽく動く） -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="かるた">
+  <meta name="theme-color" content="#FF69B4">
+  <style>
+    :root{ --pk1:#FFD1DC;--pk2:#FFB6C1;--pk3:#FF69B4;--pk4:#FF1493;--pk5:#C71585; }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{
+      background:linear-gradient(160deg,#FFD1DC,#FFB6C1 55%,#FF91A4);
+      /* svh = スマホのブラウザUIバーを除いた安全な高さ */
+      height:100svh; height:100dvh;
+      font-family:'Hiragino Maru Gothic Pro','M PLUS Rounded 1c','Yu Gothic',sans-serif;
+      touch-action:manipulation;user-select:none;-webkit-user-select:none;overflow:hidden;
+    }
+    .screen{
+      position:fixed; top:0; left:0; right:0; bottom:0;
+      height:100svh; height:100dvh;
+      display:none; flex-direction:column;
+    }
+    .big-btn{
+      background:var(--pk4);color:white;border:none;border-radius:60px;
+      padding:clamp(14px,3vw,22px) clamp(40px,8vw,80px);
+      font-size:clamp(1.4rem,5vw,2.4rem);font-family:inherit;font-weight:bold;
+      cursor:pointer;box-shadow:0 7px 0 var(--pk5);transition:transform .1s,box-shadow .1s;
+    }
+    .big-btn:active{transform:translateY(5px);box-shadow:0 2px 0 var(--pk5);}
+
+    /* ===== スタート ===== */
+    #start-screen{align-items:center;justify-content:center;gap:clamp(14px,4vw,28px);padding:20px;}
+    .game-title{
+      font-size:clamp(2rem,9vw,4.5rem);font-weight:900;color:var(--pk5);
+      text-align:center;line-height:1.2;text-shadow:3px 3px 0 white,-2px -2px 0 var(--pk2);
+    }
+    .game-sub{
+      font-size:clamp(1rem,3.5vw,1.5rem);color:var(--pk5);
+      background:white;opacity:.88;padding:10px 26px;border-radius:40px;text-align:center;
+    }
+
+    /* ===== ゲーム ===== */
+    #game-screen{
+      padding:6px 6px max(6px, env(safe-area-inset-bottom)) 6px;
+      gap:6px;
+    }
+    #score-row{flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+    .score-badge{
+      background:white;color:var(--pk5);font-weight:bold;font-size:clamp(.8rem,2.5vw,1rem);
+      border-radius:30px;padding:3px 16px;border:2px solid var(--pk3);
+    }
+
+    /* ヒントエリア（コンパクトに） */
+    #hint-area{
+      flex-shrink:0;background:white;border-radius:16px;border:3px solid var(--pk3);
+      box-shadow:0 3px 12px rgba(255,20,147,.2);cursor:pointer;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      padding:8px 14px;gap:5px;min-height:clamp(88px,15svh,118px);
+    }
+    #hint-label{font-size:clamp(.7rem,2vw,.88rem);color:var(--pk3);font-weight:bold;letter-spacing:.08em;}
+    #hint-text{
+      font-size:clamp(1.1rem,4.5vw,1.7rem);color:var(--pk5);font-weight:bold;
+      text-align:center;line-height:1.3;
+    }
+    #hint-dots{display:flex;gap:8px;}
+    .dot{
+      width:clamp(10px,2.2vw,14px);height:clamp(10px,2.2vw,14px);
+      border-radius:50%;background:var(--pk2);transition:background .3s,transform .3s;
+    }
+    .dot.lit{background:var(--pk4);transform:scale(1.25);}
+    #tap-hint{font-size:clamp(.68rem,1.9vw,.88rem);color:var(--pk3);animation:blink 1.6s ease-in-out infinite;}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+    #replay-area{display:none;flex-direction:column;align-items:center;gap:6px;}
+    .replay-label{font-size:clamp(.68rem,1.9vw,.88rem);color:var(--pk5);font-weight:bold;}
+    .replay-row{display:flex;gap:10px;}
+    .circle-btn{
+      width:clamp(44px,9vw,56px);height:clamp(44px,9vw,56px);
+      border-radius:50%;background:var(--pk4);color:white;border:none;
+      font-size:clamp(1rem,3vw,1.3rem);font-weight:bold;cursor:pointer;font-family:inherit;
+      box-shadow:0 4px 0 var(--pk5);transition:transform .1s,box-shadow .1s;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .circle-btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--pk5);}
+
+    /* 取り札グリッド */
+    #torifuda-grid{
+      flex:1;min-height:0;display:grid;
+      grid-template-columns:repeat(3,1fr);
+      grid-template-rows:repeat(3,1fr);
+      gap:6px;
+    }
+    .t-card{
+      background:linear-gradient(135deg,#FFE4EC,#FFD1DC);
+      border-radius:14px;border:3px solid var(--pk3);
+      display:flex;align-items:center;justify-content:center;
+      cursor:pointer;position:relative;overflow:hidden;
+      box-shadow:0 3px 8px rgba(255,105,180,.22);transition:transform .12s;
+    }
+    .t-card:active{transform:scale(.92);}
+    .t-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;}
+    .t-card.found{opacity:.3;pointer-events:none;border-color:var(--pk2);}
+    .t-card.correct-flash{border-color:var(--pk4);background:#FFF0F5;animation:popIn .55s ease forwards;}
+    .t-card.wrong-shake{animation:shake .38s ease;}
+    .found-ov{
+      position:absolute;inset:0;z-index:2;background:rgba(255,20,147,.2);
+      border-radius:11px;display:flex;align-items:center;justify-content:center;
+      font-size:clamp(2rem,7vw,3rem);
+    }
+    /* 画像が読み込めなかったときの番号表示 */
+    .card-num{
+      font-size:clamp(1rem,4vw,1.6rem);color:var(--pk5);font-weight:bold;opacity:.5;
+    }
+    @keyframes popIn{0%{transform:scale(1)}35%{transform:scale(1.2)}65%{transform:scale(.95)}100%{transform:scale(1)}}
+    @keyframes shake{0%,100%{transform:translateX(0)}18%{transform:translateX(-9px)}36%{transform:translateX(9px)}54%{transform:translateX(-6px)}72%{transform:translateX(6px)}}
+
+    /* ===== 正解オーバーレイ ===== */
+    #correct-overlay{
+      position:fixed;inset:0;z-index:200;
+      background:rgba(199,21,133,.82);
+      display:none;flex-direction:column;
+      align-items:center;justify-content:center;
+      gap:16px;padding:20px;cursor:pointer;
+    }
+    #correct-overlay.show{
+      display:flex;
+      animation:overlayIn .4s cubic-bezier(.34,1.56,.64,1) both;
+    }
+    @keyframes overlayIn{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
+    .correct-label{
+      font-size:clamp(2rem,8vw,3.5rem);font-weight:900;color:white;
+      text-shadow:3px 3px 0 var(--pk5);
+      animation:starBounce .6s ease infinite alternate;
+    }
+    @keyframes starBounce{from{transform:scale(1)}to{transform:scale(1.1)}}
+    #correct-yomi-img{
+      max-width:min(78vw,340px);max-height:min(62vh,500px);
+      border-radius:20px;border:5px solid white;
+      box-shadow:0 8px 32px rgba(0,0,0,.4);object-fit:contain;
+    }
+    .correct-tap-hint{
+      font-size:clamp(.8rem,2.5vw,1rem);color:rgba(255,255,255,.85);
+      animation:blink 1.6s ease-in-out infinite;
+    }
+
+    /* ===== クリア ===== */
+    #complete-screen{align-items:center;justify-content:center;gap:clamp(16px,4vw,28px);padding:20px;text-align:center;}
+    .c-emoji{font-size:clamp(3rem,13vw,6.5rem);animation:bounce 1s ease infinite alternate;}
+    @keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-18px)}}
+    .c-title{font-size:clamp(2rem,8vw,4rem);font-weight:900;color:var(--pk5);line-height:1.3;text-shadow:3px 3px 0 white;}
+    .c-sub{font-size:clamp(1rem,3.5vw,1.6rem);color:var(--pk5);background:white;opacity:.88;padding:8px 28px;border-radius:40px;}
+  </style>
+</head>
+<body>
+
+<!-- ===== スタート ===== -->
+<div id="start-screen" class="screen">
+  <div class="game-title">🌸ピンクモンスター<br>かるた🌸</div>
+  <div class="game-sub">ヒントをきいて<br>モンスターをさがそう！</div>
+  <button class="big-btn" onclick="startGame()">はじめる！</button>
+</div>
+
+<!-- ===== ゲーム ===== -->
+<div id="game-screen" class="screen">
+  <div id="score-row">
+    <span class="score-badge">みつけた：<span id="found-count">0</span> / 9</span>
+  </div>
+
+  <!-- ヒントエリア（テキストのみ） -->
+  <div id="hint-area" onclick="hintTap()">
+    <div id="reading-area" style="display:flex;flex-direction:column;align-items:center;gap:7px;">
+      <div id="hint-label">ヒント 1 / 3</div>
+      <div id="hint-text">よみふだをよむよ！</div>
+      <div id="hint-dots">
+        <div class="dot" id="d0"></div>
+        <div class="dot" id="d1"></div>
+        <div class="dot" id="d2"></div>
+      </div>
+      <div id="tap-hint">▶ タップしてつぎのヒント</div>
+    </div>
+    <div id="replay-area">
+      <div class="replay-label">もういちどきく？</div>
+      <div class="replay-row">
+        <button class="circle-btn" onclick="replayHint(0,event)">①</button>
+        <button class="circle-btn" onclick="replayHint(1,event)">②</button>
+        <button class="circle-btn" onclick="replayHint(2,event)">③</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 取り札グリッド -->
+  <div id="torifuda-grid"></div>
+</div>
+
+<!-- ===== 正解オーバーレイ（読み札を大きく表示） ===== -->
+<div id="correct-overlay" onclick="closeOverlay()">
+  <div class="correct-label">⭐ せいかい！ ⭐</div>
+  <img id="correct-yomi-img" src="" alt="よみふだ">
+  <div class="correct-tap-hint">タップしてつぎへ</div>
+</div>
+
+<!-- ===== クリア ===== -->
+<div id="complete-screen" class="screen">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(16px,4vw,28px);padding:20px;text-align:center;">
+    <div class="c-emoji">🌟</div>
+    <div class="c-title">ぜんぶみつけた！<br>すごいね！！</div>
+    <div class="c-sub">よくできました 🎉</div>
+    <button class="big-btn" onclick="startGame()">もういちど！</button>
+  </div>
+</div>
+
+<script>
+// =========================================================
+//  カードデータ
+//  画像は HTML と同じ場所にある
+//  torifuda/1.jpg ～ 9.jpg
+//  yomifuda/1.jpg ～ 9.jpg
+//
+//  カード番号とモンスターの対応：
+//  1: もじゃもじゃ・三日月つの2本・2つ目
+//  2: あたまが2つ・くびがながい
+//  3: めが2つ・大きな歯・あし6本
+//  4: めが4つ・つの1本・矢印しっぽ
+//  5: めが1つ・つの2本・青いした
+//  6: めが6つ・大きなまるいあたま
+//  7: うさぎ耳・めが3つ・キバ
+//  8: きいろいかみ・くちばし・しっぽ
+//  9: うさぎ耳・くちばし・はね・しっぽ
+// =========================================================
+// jpg / jpeg / JPG / JPEG / png / PNG どれでも自動で読み込む
+const EXTS = ['jpg','jpeg','JPG','JPEG','png','PNG'];
+
+function loadImg(imgEl, basePath, onSuccess, onFail) {
+  let i = 0;
+  function tryNext() {
+    if (i >= EXTS.length) { onFail(); return; }
+    const src = basePath + '.' + EXTS[i++];
+    imgEl.onload  = () => { onSuccess && onSuccess(src); };
+    imgEl.onerror = tryNext;
+    imgEl.src = src;
+  }
+  tryNext();
+}
+
+const CARDS = [
+  {
+    tori: './torifuda/1',
+    yomi: './yomifuda/1',
+    hints: ['あしは 2ほんだよ', 'めは 2つだよ', 'つのが あるよ']
+  },
+  {
+    tori: './torifuda/2',
+    yomi: './yomifuda/2',
+    hints: ['ながい くびだよ', 'しっぽが あるよ', 'あたまが 2つ あるよ']
+  },
+  {
+    tori: './torifuda/3',
+    yomi: './yomifuda/3',
+    hints: ['めは 2つだよ', 'はが あるよ', 'あしが 6ぽん あるよ']
+  },
+  {
+    tori: './torifuda/4',
+    yomi: './yomifuda/4',
+    hints: ['つのが あるよ', 'しっぽが あるよ', 'めは 4つあるよ']
+  },
+  {
+    tori: './torifuda/5',
+    yomi: './yomifuda/5',
+    hints: ['つのが あるよ', 'したを だしているよ', 'めが 1つ あるよ']
+  },
+  {
+    tori: './torifuda/6',
+    yomi: './yomifuda/6',
+    hints: ['つのも きばも ないよ', 'おおきな あたまだよ', 'めが 6つも あるよ']
+  },
+  {
+    tori: './torifuda/7',
+    yomi: './yomifuda/7',
+    hints: ['めは 3つだよ', 'きばが はえているよ', 'うさぎ みたいな みみだよ']
+  },
+  {
+    tori: './torifuda/8',
+    yomi: './yomifuda/8',
+    hints: ['しっぽが あるよ', 'あしは 2ほんだよ', 'めは 3つあるよ']
+  },
+  {
+    tori: './torifuda/9',
+    yomi: './yomifuda/9',
+    hints: ['しっぽが あるよ', 'うさぎ みたいな みみだよ', 'はねが あるよ']
+  },
+];
+
+// =========================================================
+//  ゲーム状態
+// =========================================================
+let gameOrder = [], gamePos = 0, found = new Set(), hintIdx = 0;
+let overlayTimer = null;
+
+// =========================================================
+//  起動
+// =========================================================
+window.addEventListener('load', () => {
+  const s = document.getElementById('start-screen');
+  s.style.display = 'flex';
+});
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
+  document.getElementById(id).style.display = 'flex';
+}
+
+// =========================================================
+//  ゲーム開始
+// =========================================================
+function startGame() {
+  gameOrder = shuffle([...Array(9).keys()]);
+  gamePos = 0; found = new Set(); hintIdx = 0;
+  document.getElementById('found-count').textContent = '0';
+  buildGrid();
+  showScreen('game-screen');
+  nextRound();
+}
+
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// =========================================================
+//  グリッド構築
+// =========================================================
+function buildGrid() {
+  const grid = document.getElementById('torifuda-grid');
+  grid.innerHTML = '';
+  CARDS.forEach((card, i) => {
+    const d = document.createElement('div');
+    d.className = 't-card';
+    d.id = `tc${i}`;
+
+    // jpg / jpeg / png … どれでも自動で試す
+    const img = document.createElement('img');
+    img.alt = `カード${i + 1}`;
+    d.appendChild(img);
+    loadImg(img, card.tori, null, () => {
+      // どの拡張子でも読めなかった → 番号を表示
+      img.remove();
+      const num = document.createElement('div');
+      num.className = 'card-num';
+      num.textContent = i + 1;
+      d.appendChild(num);
+    });
+
+    d.addEventListener('click', () => pickCard(i));
+    grid.appendChild(d);
+  });
+}
+
+// =========================================================
+//  ラウンド進行
+// =========================================================
+function nextRound() {
+  if (gamePos >= 9) { showComplete(); return; }
+  const ti = gameOrder[gamePos];
+  document.getElementById('torifuda-grid').dataset.target = ti;
+  hintIdx = 0;
+  updateHintUI();
+  speak(CARDS[ti].hints[0]);
+}
+
+function updateHintUI() {
+  const ti  = gameOrder[gamePos];
+  const all = hintIdx >= 2;
+  document.getElementById('hint-label').textContent = `ヒント ${hintIdx + 1} / 3`;
+  document.getElementById('hint-text').textContent  = CARDS[ti].hints[hintIdx];
+  for (let i = 0; i < 3; i++)
+    document.getElementById(`d${i}`).className = 'dot' + (i <= hintIdx ? ' lit' : '');
+  document.getElementById('reading-area').style.display = all ? 'none' : 'flex';
+  document.getElementById('replay-area').style.display  = all ? 'flex' : 'none';
+}
+
+function hintTap() {
+  if (hintIdx < 2) {
+    hintIdx++;
+    updateHintUI();
+    speak(CARDS[gameOrder[gamePos]].hints[hintIdx]);
+  }
+}
+
+function replayHint(idx, event) {
+  event.stopPropagation();
+  speak(CARDS[gameOrder[gamePos]].hints[idx]);
+}
+
+// =========================================================
+//  カード選択
+// =========================================================
+function pickCard(id) {
+  if (found.has(id)) return;
+  const ti   = parseInt(document.getElementById('torifuda-grid').dataset.target);
+  const card = document.getElementById(`tc${id}`);
+
+  if (id === ti) {
+    // 正解！
+    card.classList.add('correct-flash');
+    speak('せいかい！やったね！すごい！');
+    found.add(id);
+    gamePos++;
+    document.getElementById('found-count').textContent = found.size;
+
+    setTimeout(() => {
+      // ⭐ マークをカードに追加
+      const ov = document.createElement('div');
+      ov.className = 'found-ov';
+      ov.textContent = '⭐';
+      card.appendChild(ov);
+      card.classList.remove('correct-flash');
+      card.classList.add('found');
+
+      // 読み札画像を大きく表示
+      showCorrectOverlay(CARDS[ti].yomi);
+    }, 620);
+
+  } else {
+    // 不正解
+    card.classList.add('wrong-shake');
+    card.addEventListener('animationend', () => card.classList.remove('wrong-shake'), { once: true });
+    speak('ちがうよ、もういちどさがしてみよう');
+  }
+}
+
+// =========================================================
+//  正解オーバーレイ
+// =========================================================
+function showCorrectOverlay(yomiBase) {
+  const overlay = document.getElementById('correct-overlay');
+  const img     = document.getElementById('correct-yomi-img');
+
+  img.style.display = '';
+  loadImg(img, yomiBase,
+    () => {  // 読み込み成功
+      overlay.classList.add('show');
+      clearTimeout(overlayTimer);
+      overlayTimer = setTimeout(() => closeOverlay(), 3500);
+    },
+    () => {  // 全拡張子で失敗 → オーバーレイなしで次へ
+      setTimeout(() => nextRound(), 800);
+    }
+  );
+  // 先にオーバーレイを出して画像が来たら表示（ちらつき防止のため少し遅らせる）
+  overlay.classList.add('show');
+  clearTimeout(overlayTimer);
+  overlayTimer = setTimeout(() => closeOverlay(), 3500);
+}
+
+function closeOverlay() {
+  clearTimeout(overlayTimer);
+  document.getElementById('correct-overlay').classList.remove('show');
+  setTimeout(() => nextRound(), 200);
+}
+
+function showComplete() {
+  showScreen('complete-screen');
+  speak('やったー！ぜんぶみつけた！すごいね！よくできました！');
+}
+
+// =========================================================
+//  音声
+// =========================================================
+function speak(text) {
+  if (!text || !window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'ja-JP'; u.rate = 0.82; u.pitch = 1.15;
+  speechSynthesis.speak(u);
+}
+</script>
+</body>
+</html>

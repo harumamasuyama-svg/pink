@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- 背景（角丸ピンク） -->
+  <rect width="512" height="512" rx="112" fill="#FFB6C1"/>
+
+  <!-- 黄色い三日月つの（2本） -->
+  <path d="M148,210 C100,140 118,48 166,72 C136,106 136,170 166,210Z" fill="#FFD700" stroke="#B8860B" stroke-width="6"/>
+  <path d="M364,210 C412,140 394,48 346,72 C376,106 376,170 346,210Z" fill="#FFD700" stroke="#B8860B" stroke-width="6"/>
+
+  <!-- もじゃもじゃ体のふわふわパーツ -->
+  <circle cx="256" cy="178" r="64" fill="#FF69B4"/>
+  <circle cx="128" cy="230" r="58" fill="#FF69B4"/>
+  <circle cx="384" cy="230" r="58" fill="#FF69B4"/>
+  <circle cx="108" cy="314" r="54" fill="#FF69B4"/>
+  <circle cx="404" cy="314" r="54" fill="#FF69B4"/>
+  <circle cx="138" cy="390" r="56" fill="#FF69B4"/>
+  <circle cx="374" cy="390" rx="56" fill="#FF69B4"/>
+  <circle cx="256" cy="418" r="60" fill="#FF69B4"/>
+
+  <!-- メインボディ -->
+  <circle cx="256" cy="308" r="156" fill="#FF69B4" stroke="#C71585" stroke-width="6"/>
+
+  <!-- 黒い腕 -->
+  <line x1="106" y1="330" x2="52" y2="400" stroke="#2C1A50" stroke-width="36" stroke-linecap="round"/>
+  <line x1="406" y1="330" x2="460" y2="400" stroke="#2C1A50" stroke-width="36" stroke-linecap="round"/>
+
+  <!-- 黒い足 -->
+  <rect x="182" y="450" width="54" height="80" rx="27" fill="#2C1A50"/>
+  <rect x="276" y="450" width="54" height="80" rx="27" fill="#2C1A50"/>
+  <ellipse cx="209" cy="530" rx="52" ry="30" fill="#2C1A50"/>
+  <ellipse cx="303" cy="530" rx="52" ry="30" fill="#2C1A50"/>
+
+  <!-- 目（眠そう・半分閉じ） -->
+  <ellipse cx="196" cy="278" rx="48" ry="42" fill="white" stroke="#C71585" stroke-width="4"/>
+  <path d="M150,262 Q196,300 242,262 Z" fill="#2C1A50"/>
+  <circle cx="196" cy="294" r="20" fill="#100818"/>
+  <circle cx="184" cy="282" r="7" fill="white"/>
+
+  <ellipse cx="316" cy="278" rx="48" ry="42" fill="white" stroke="#C71585" stroke-width="4"/>
+  <path d="M270,262 Q316,300 362,262 Z" fill="#2C1A50"/>
+  <circle cx="316" cy="294" r="20" fill="#100818"/>
+  <circle cx="304" cy="282" r="7" fill="white"/>
+
+  <!-- 鼻 -->
+  <circle cx="256" cy="336" r="20" fill="#3A1040"/>
+
+  <!-- むっつりした口 -->
+  <path d="M210,378 Q256,358 302,378" fill="none" stroke="#C71585" stroke-width="14" stroke-linecap="round"/>
+</svg>
