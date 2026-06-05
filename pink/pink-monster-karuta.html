@@ -6,10 +6,10 @@
   <title>ピンクモンスターかるた</title>
 
   <!-- ブラウザタブのアイコン -->
-  <link rel="icon" type="image/svg+xml" href="./icon.svg">
+  <link rel="icon" type="image/png" href="./icon.png">
 
   <!-- iPhoneのホーム画面アイコン -->
-  <link rel="apple-touch-icon" href="./icon.svg">
+  <link rel="apple-touch-icon" href="./icon.png">
 
   <!-- PWA設定（ホーム画面に追加したときにアプリっぽく動く） -->
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -55,11 +55,18 @@
       padding:6px 6px max(6px, env(safe-area-inset-bottom)) 6px;
       gap:6px;
     }
-    #score-row{flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+    #score-row{flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:8px;}
     .score-badge{
       background:white;color:var(--pk5);font-weight:bold;font-size:clamp(.8rem,2.5vw,1rem);
       border-radius:30px;padding:3px 16px;border:2px solid var(--pk3);
     }
+    .bgm-btn{
+      background:white;border:2px solid var(--pk3);border-radius:50%;
+      width:34px;height:34px;font-size:1rem;cursor:pointer;flex-shrink:0;
+      display:flex;align-items:center;justify-content:center;
+      box-shadow:0 2px 6px rgba(255,105,180,.25);transition:transform .1s;
+    }
+    .bgm-btn:active{transform:scale(.88);}
 
     /* ヒントエリア（コンパクトに） */
     #hint-area{
@@ -174,6 +181,7 @@
 <div id="game-screen" class="screen">
   <div id="score-row">
     <span class="score-badge">みつけた：<span id="found-count">0</span> / 9</span>
+    <button class="bgm-btn" id="bgm-btn" onclick="toggleBGM()" title="BGM">🎵</button>
   </div>
 
   <!-- ヒントエリア（テキストのみ） -->
@@ -329,6 +337,10 @@ function startGame() {
   buildGrid();
   showScreen('game-screen');
   nextRound();
+  // BGMを自動スタート（ユーザー操作後なので自動再生OK）
+  startBGM();
+  const btn = document.getElementById('bgm-btn');
+  if (btn) btn.textContent = '🎵';
 }
 
 function shuffle(a) {
@@ -479,6 +491,84 @@ function showComplete() {
 // =========================================================
 //  音声
 // =========================================================
+// =========================================================
+//  BGM（Web Audio APIによるゆったりしたメロディー）
+// =========================================================
+let bgmCtx  = null;
+let bgmGain = null;
+let bgmLoop = null;
+let bgmOn   = false;
+
+// Cメジャーペンタトニック（C D E G A）のゆったりメロディー
+// [Hz, 拍数]  1拍 = BEAT秒
+const BEAT = 0.46;
+const MELODY = [
+  [659,1],[659,1],[784,1],[659,1],  // E5 E5 G5 E5
+  [587,1],[523,1],[440,2],           // D5 C5 A4..
+  [523,1],[587,1],[659,1],[587,1],  // C5 D5 E5 D5
+  [523,1],[440,1],[392,2],           // C5 A4 G4..
+  [392,1],[440,1],[523,1],[440,1],  // G4 A4 C5 A4
+  [392,1],[330,1],[294,2],           // G4 E4 D4..
+  [330,1],[392,1],[440,1],[392,1],  // E4 G4 A4 G4
+  [330,1],[294,1],[262,4],           // E4 D4 C4....
+];
+
+async function startBGM() {
+  if (bgmOn) return;
+  try {
+    bgmCtx  = new (window.AudioContext || window.webkitAudioContext)();
+    // iOSではresume()が必要
+    if (bgmCtx.state === 'suspended') await bgmCtx.resume();
+    bgmGain = bgmCtx.createGain();
+    bgmGain.gain.value = 0.13;
+    bgmGain.connect(bgmCtx.destination);
+    bgmOn = true;
+    loopMelody();
+  } catch(e) { console.log('BGM error:', e); }
+}
+
+function loopMelody() {
+  if (!bgmOn || !bgmCtx) return;
+  let t = bgmCtx.currentTime + 0.05;
+  let total = 0;
+  MELODY.forEach(([hz, beats]) => {
+    const dur = beats * BEAT;
+    playNote(hz, t + total, dur);
+    total += dur;
+  });
+  bgmLoop = setTimeout(loopMelody, (total - 0.3) * 1000);
+}
+
+function playNote(hz, start, dur) {
+  if (!bgmCtx) return;
+  const osc = bgmCtx.createOscillator();
+  const env = bgmCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.value = hz;
+  env.gain.setValueAtTime(0, start);
+  env.gain.linearRampToValueAtTime(1, start + Math.min(0.06, dur * 0.25));
+  env.gain.setValueAtTime(0.8, start + dur * 0.65);
+  env.gain.linearRampToValueAtTime(0, start + dur);
+  osc.connect(env);
+  env.connect(bgmGain);
+  osc.start(start);
+  osc.stop(start + dur + 0.02);
+}
+
+function toggleBGM() {
+  const btn = document.getElementById('bgm-btn');
+  if (bgmOn) {
+    clearTimeout(bgmLoop);
+    bgmCtx.close();
+    bgmCtx = null;
+    bgmOn  = false;
+    btn.textContent = '🔇';
+  } else {
+    startBGM();
+    btn.textContent = '🎵';
+  }
+}
+
 function speak(text) {
   if (!text || !window.speechSynthesis) return;
   speechSynthesis.cancel();
