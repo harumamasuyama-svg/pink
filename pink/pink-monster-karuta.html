@@ -182,6 +182,7 @@
   <div id="score-row">
     <span class="score-badge">みつけた：<span id="found-count">0</span> / 9</span>
     <button class="bgm-btn" id="bgm-btn" onclick="toggleBGM()" title="BGM">🎵</button>
+    <button class="bgm-btn" onclick="backToStart()" title="もどる" style="font-size:.85rem;">🏠</button>
   </div>
 
   <!-- ヒントエリア（テキストのみ） -->
@@ -330,6 +331,20 @@ function showScreen(id) {
 // =========================================================
 //  ゲーム開始
 // =========================================================
+function backToStart() {
+  // BGM停止
+  if (bgmOn) {
+    clearTimeout(bgmLoop);
+    bgmCtx.close();
+    bgmCtx = null;
+    bgmOn  = false;
+  }
+  // 音声停止
+  if (window.speechSynthesis) speechSynthesis.cancel();
+  // スタート画面へ
+  showScreen('start-screen');
+}
+
 function startGame() {
   gameOrder = shuffle([...Array(9).keys()]);
   gamePos = 0; found = new Set(); hintIdx = 0;
