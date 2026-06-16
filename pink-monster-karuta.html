@@ -415,6 +415,10 @@ function toggleAuto() {
   if (autoMode) {
     btn.textContent = 'じどう ON';
     btn.classList.add('on');
+    // ONにした瞬間、ヒントの途中ならすぐタイマーをスタート
+    if (gamePos < 9 && hintIdx < 2) {
+      scheduleAutoHint();
+    }
   } else {
     btn.textContent = 'じどう OFF';
     btn.classList.remove('on');
