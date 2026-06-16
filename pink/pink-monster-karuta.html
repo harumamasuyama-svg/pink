@@ -67,6 +67,14 @@
       box-shadow:0 2px 6px rgba(255,105,180,.25);transition:transform .1s;
     }
     .bgm-btn:active{transform:scale(.88);}
+    .auto-btn{
+      background:white;border:2px solid var(--pk3);border-radius:20px;
+      padding:2px 10px;font-size:.8rem;font-weight:bold;color:var(--pk5);
+      cursor:pointer;flex-shrink:0;font-family:inherit;
+      box-shadow:0 2px 6px rgba(255,105,180,.25);transition:transform .1s,background .2s;
+    }
+    .auto-btn.on{background:var(--pk3);color:white;border-color:var(--pk5);}
+    .auto-btn:active{transform:scale(.88);}
 
     /* ヒントエリア（コンパクトに） */
     #hint-area{
@@ -182,6 +190,7 @@
   <div id="score-row">
     <span class="score-badge">みつけた：<span id="found-count">0</span> / 9</span>
     <button class="bgm-btn" id="bgm-btn" onclick="toggleBGM()" title="BGM">🎵</button>
+    <button class="auto-btn" id="auto-btn" onclick="toggleAuto()">じどう OFF</button>
     <button class="bgm-btn" onclick="backToStart()" title="もどる" style="font-size:.85rem;">🏠</button>
   </div>
 
@@ -314,6 +323,8 @@ const CARDS = [
 // =========================================================
 let gameOrder = [], gamePos = 0, found = new Set(), hintIdx = 0;
 let overlayTimer = null;
+let autoMode = false;
+let autoTimer = null;
 
 // =========================================================
 //  起動
@@ -398,13 +409,46 @@ function buildGrid() {
 // =========================================================
 //  ラウンド進行
 // =========================================================
+function toggleAuto() {
+  autoMode = !autoMode;
+  const btn = document.getElementById('auto-btn');
+  if (autoMode) {
+    btn.textContent = 'じどう ON';
+    btn.classList.add('on');
+  } else {
+    btn.textContent = 'じどう OFF';
+    btn.classList.remove('on');
+    clearTimeout(autoTimer);
+  }
+}
+
+function scheduleAutoHint() {
+  if (!autoMode) return;
+  clearTimeout(autoTimer);
+  autoTimer = setTimeout(() => {
+    if (hintIdx < 2) {
+      hintIdx++;
+      updateHintUI();
+      speakThenAuto(CARDS[gameOrder[gamePos]].hints[hintIdx]);
+    }
+    // hintIdx===2 になったらリプレイエリアが出るので自動は止まる
+  }, 3000);
+}
+
 function nextRound() {
   if (gamePos >= 9) { showComplete(); return; }
   const ti = gameOrder[gamePos];
   document.getElementById('torifuda-grid').dataset.target = ti;
   hintIdx = 0;
   updateHintUI();
-  speak(CARDS[ti].hints[0]);
+  speakThenAuto(CARDS[ti].hints[0]);
+}
+
+function speakThenAuto(text) {
+  speak(text);
+  if (autoMode && hintIdx < 2) {
+    scheduleAutoHint();
+  }
 }
 
 function updateHintUI() {
@@ -420,9 +464,10 @@ function updateHintUI() {
 
 function hintTap() {
   if (hintIdx < 2) {
+    clearTimeout(autoTimer);
     hintIdx++;
     updateHintUI();
-    speak(CARDS[gameOrder[gamePos]].hints[hintIdx]);
+    speakThenAuto(CARDS[gameOrder[gamePos]].hints[hintIdx]);
   }
 }
 
@@ -441,6 +486,7 @@ function pickCard(id) {
 
   if (id === ti) {
     // 正解！
+    clearTimeout(autoTimer);
     card.classList.add('correct-flash');
     speak('せいかい！やったね！すごい！');
     found.add(id);
